@@ -9,10 +9,12 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
-export interface NotificationData {
+export interface NotificationData extends Record<string, unknown> {
   type: 'food_listing' | 'volunteer_assignment' | 'delivery_update';
   donationId?: string;
   taskId?: string;
@@ -100,7 +102,7 @@ export async function sendLocalNotification(payload: NotificationPayload) {
       content: {
         title: payload.title,
         body: payload.body,
-        data: payload.data,
+        data: payload.data as Record<string, unknown>,
         sound: true,
       },
       trigger: null, // Show immediately
@@ -117,7 +119,7 @@ export async function sendLocalNotification(payload: NotificationPayload) {
 export function setupNotificationHandlers() {
   // Handle notification tap when app is running
   const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-    const data = response.notification.request.content.data as NotificationData;
+    const data = response.notification.request.content.data as unknown as NotificationData;
     handleNotificationTap(data);
   });
 

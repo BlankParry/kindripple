@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { trpc } from '@/lib/trpc';
+import { trpc, trpcClient } from '@/lib/trpc';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { requestNotificationPermissions, setupNotificationChannels, setupNotificationHandlers } from '@/lib/notifications';
 import { useNotificationStore } from '@/store/notification-store';
@@ -22,26 +22,6 @@ function RootLayoutContent() {
         retry: 1,
       },
     },
-  }));
-
-  const [trpcClient] = useState(() => trpc.createClient({
-    links: [
-      trpc.httpLink({
-        url: getBaseUrl() + '/api/trpc',
-        transformer: trpc.transformer,
-        headers() {
-          return {
-            'Content-Type': 'application/json',
-          };
-        },
-        fetch(url, options) {
-          return fetch(url, {
-            ...options,
-            credentials: 'omit', // Don't send cookies for CORS
-          });
-        },
-      }),
-    ],
   }));
 
   // Setup notifications on app start
@@ -107,26 +87,5 @@ export default function RootLayout() {
     <ThemeProvider>
       <RootLayoutContent />
     </ThemeProvider>
-  );
-}
-
-function getBaseUrl() {
-  if (process.env.EXPO_PUBLIC_RORK_API_BASE_URL) {
-    return process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
-  }
-
-  // Development fallbacks
-  if (__DEV__) {
-    // For Expo development
-    if (typeof window !== 'undefined') {
-      // Web
-      return window.location.origin;
-    }
-    // Mobile - use your local IP or localhost
-    return 'http://localhost:8081';
-  }
-
-  throw new Error(
-    "No base url found, please set EXPO_PUBLIC_RORK_API_BASE_URL"
   );
 }

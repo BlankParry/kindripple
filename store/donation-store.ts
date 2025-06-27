@@ -103,7 +103,9 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         set({ donations: [...mockDonations], isLoading: false });
         
         // Fetch names for mock data
-        const userIds = mockDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+        const userIds = mockDonations
+          .flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer])
+          .filter((id): id is string => Boolean(id));
         get().fetchUserNames(userIds);
         return;
       }
@@ -113,14 +115,18 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         set({ donations: mappedDonations, isLoading: false });
         
         // Fetch user names for all related users
-        const userIds = mappedDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+        const userIds = mappedDonations
+          .flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer])
+          .filter((id): id is string => Boolean(id));
         get().fetchUserNames(userIds);
       } else {
         // If no donations in database, use mock data
         set({ donations: [...mockDonations], isLoading: false });
         
         // Fetch names for mock data
-        const userIds = mockDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+        const userIds = mockDonations
+          .flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer])
+          .filter((id): id is string => Boolean(id));
         get().fetchUserNames(userIds);
       }
     } catch (error) {
@@ -132,7 +138,9 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       });
       
       // Fetch names for mock data
-      const userIds = mockDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+      const userIds = mockDonations
+        .flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer])
+        .filter((id): id is string => Boolean(id));
       get().fetchUserNames(userIds);
     }
   },
@@ -283,7 +291,7 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       }));
       
       // Fetch user names for any new user IDs
-      const userIds = [updates.claimedBy, updates.assignedVolunteer].filter(Boolean);
+      const userIds = [updates.claimedBy, updates.assignedVolunteer].filter((id): id is string => Boolean(id));
       if (userIds.length > 0) {
         get().fetchUserNames(userIds);
       }
@@ -292,7 +300,7 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       if (updates.status) {
         const donation = get().donations.find(d => d.id === id);
         if (donation) {
-          if (updates.status === 'collected' || updates.status === 'delivered' || updates.status === 'completed') {
+          if (updates.status === 'completed') {
             await NotificationHelpers.notifyDeliveryStatusChange(
               updates.status,
               id,
