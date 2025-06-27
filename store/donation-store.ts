@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { FoodDonation } from '@/types';
 import { mockDonations } from '@/mocks/donations';
 import { supabase } from '@/lib/supabase';
+import { NotificationHelpers } from '@/lib/notifications';
+import { useNotificationStore } from './notification-store';
 
 interface DonationState {
   donations: FoodDonation[];
@@ -193,6 +195,21 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         // Fetch user names
         get().fetchUserNames([donation.restaurantId]);
         
+        // Send notification to NGOs about new food listing
+        await NotificationHelpers.notifyNGOsAboutFoodListing(
+          donation.restaurantName,
+          donation.quantity,
+          newDonation.id
+        );
+
+        // Add in-app notification
+        useNotificationStore.getState().addInAppNotification({
+          title: "Donation Created! 🍽️",
+          message: `Your donation "${donation.title}" has been listed and NGOs have been notified.`,
+          type: 'success',
+          data: { donationId: newDonation.id },
+        });
+        
         return newDonation;
       }
 
@@ -204,6 +221,21 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       
       // Fetch user names
       get().fetchUserNames([newDonation.restaurantId]);
+      
+      // Send notification to NGOs about new food listing
+      await NotificationHelpers.notifyNGOsAboutFoodListing(
+        newDonation.restaurantName,
+        newDonation.quantity,
+        newDonation.id
+      );
+
+      // Add in-app notification
+      useNotificationStore.getState().addInAppNotification({
+        title: "Donation Created! 🍽️",
+        message: `Your donation "${newDonation.title}" has been listed and NGOs have been notified.`,
+        type: 'success',
+        data: { donationId: newDonation.id },
+      });
       
       return newDonation;
     } catch (error) {
@@ -255,6 +287,20 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       if (userIds.length > 0) {
         get().fetchUserNames(userIds);
       }
+
+      // Send notifications for status changes
+      if (updates.status) {
+        const donation = get().donations.find(d => d.id === id);
+        if (donation) {
+          if (updates.status === 'collected' || updates.status === 'delivered' || updates.status === 'completed') {
+            await NotificationHelpers.notifyDeliveryStatusChange(
+              updates.status,
+              id,
+              true // For restaurant
+            );
+          }
+        }
+      }
     } catch (error) {
       set({ error: "Failed to update donation", isLoading: false });
       throw error;
@@ -303,6 +349,17 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       
       // Fetch NGO name
       get().fetchUserNames([ngoId]);
+
+      // Add in-app notification for NGO
+      const donation = get().donations.find(d => d.id === donationId);
+      if (donation) {
+        useNotificationStore.getState().addInAppNotification({
+          title: "Donation Claimed! 📦",
+          message: `You have successfully claimed "${donation.title}" from ${donation.restaurantName}.`,
+          type: 'success',
+          data: { donationId },
+        });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to claim donation";
       set({ error: errorMessage, isLoading: false });
@@ -316,7 +373,7 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       // Verify volunteer exists
       const { data: volunteerExists, error: volunteerCheckError } = await supabase
         .from('users')
-        .select('id')
+        .select('id, name')
         .eq('id', volunteerId)
         .eq('role', 'volunteer')
         .single();
@@ -352,6 +409,34 @@ export const useDonationStore = create<DonationState>((set, get) => ({
       
       // Fetch volunteer name
       get().fetchUserNames([volunteerId]);
+
+      // Send notifications about volunteer assignment
+      const donation = get().donations.find(d => d.id === donationId);
+      if (donation && volunteerExists) {
+        // Notify NGO
+        await NotificationHelpers.notifyVolunteerAssignment(
+          volunteerExists.name,
+          donation.restaurantName,
+          donationId,
+          true // For NGO
+        );
+
+        // Notify Volunteer
+        await NotificationHelpers.notifyVolunteerAssignment(
+          volunteerExists.name,
+          donation.restaurantName,
+          donationId,
+          false // For Volunteer
+        );
+
+        // Add in-app notifications
+        useNotificationStore.getState().addInAppNotification({
+          title: "Volunteer Assigned! 👥",
+          message: `${volunteerExists.name} has been assigned to handle the pickup from ${donation.restaurantName}.`,
+          type: 'info',
+          data: { donationId },
+        });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to assign volunteer";
       set({ error: errorMessage, isLoading: false });

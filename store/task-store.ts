@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { DeliveryTask } from '@/types';
 import { mockTasks } from '@/mocks/tasks';
 import { supabase } from '@/lib/supabase';
+import { NotificationHelpers } from '@/lib/notifications';
+import { useNotificationStore } from './notification-store';
 
 interface TaskState {
   tasks: DeliveryTask[];
@@ -178,6 +180,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         // Fetch user names
         const userIds = [task.volunteerId, task.ngoId, task.restaurantId].filter(Boolean);
         get().fetchUserNames(userIds);
+
+        // Add in-app notification
+        useNotificationStore.getState().addInAppNotification({
+          title: "Task Created! 📋",
+          message: `New delivery task has been created and assigned.`,
+          type: 'info',
+          data: { taskId: newTask.id },
+        });
         
         return newTask;
       }
@@ -191,6 +201,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       // Fetch user names
       const userIds = [newTask.volunteerId, newTask.ngoId, newTask.restaurantId].filter(Boolean);
       get().fetchUserNames(userIds);
+
+      // Add in-app notification
+      useNotificationStore.getState().addInAppNotification({
+        title: "Task Created! 📋",
+        message: `New delivery task has been created and assigned.`,
+        type: 'info',
+        data: { taskId: newTask.id },
+      });
       
       return newTask;
     } catch (error) {
@@ -219,6 +237,41 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         ),
         isLoading: false
       }));
+
+      // Send notifications for status changes
+      const task = get().tasks.find(t => t.id === taskId);
+      if (task) {
+        if (status === 'in-progress') {
+          await NotificationHelpers.notifyDeliveryStatusChange(
+            'collected',
+            task.donationId,
+            true // For restaurant
+          );
+        } else if (status === 'completed') {
+          await NotificationHelpers.notifyDeliveryStatusChange(
+            'delivered',
+            task.donationId,
+            false // For NGO
+          );
+        }
+
+        // Add in-app notification
+        const statusMessages = {
+          'in-progress': 'Task is now in progress! 🚚',
+          'completed': 'Task completed successfully! ✅',
+          'cancelled': 'Task has been cancelled. ❌',
+        };
+
+        const message = statusMessages[status as keyof typeof statusMessages];
+        if (message) {
+          useNotificationStore.getState().addInAppNotification({
+            title: "Task Status Updated",
+            message,
+            type: status === 'completed' ? 'success' : status === 'cancelled' ? 'warning' : 'info',
+            data: { taskId },
+          });
+        }
+      }
     } catch (error) {
       set({ error: "Failed to update task status", isLoading: false });
     }
@@ -255,6 +308,24 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         ),
         isLoading: false
       }));
+
+      // Send completion notifications
+      const task = get().tasks.find(t => t.id === taskId);
+      if (task) {
+        await NotificationHelpers.notifyDeliveryStatusChange(
+          'completed',
+          task.donationId,
+          false // For NGO
+        );
+
+        // Add in-app notification
+        useNotificationStore.getState().addInAppNotification({
+          title: "Delivery Completed! 🎉",
+          message: "Thank you for making a difference! The food has been successfully delivered.",
+          type: 'success',
+          data: { taskId },
+        });
+      }
     } catch (error) {
       set({ error: "Failed to complete task", isLoading: false });
     }

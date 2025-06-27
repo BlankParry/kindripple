@@ -5,12 +5,15 @@ import { Search, Filter, MapPin, Plus } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth-store';
 import { useDonationStore } from '@/store/donation-store';
 import { useTaskStore } from '@/store/task-store';
+import { useChatStore } from '@/store/chat-store';
 import { useTheme } from '@/contexts/ThemeContext';
 import DonationCard from '@/components/ui/DonationCard';
 import TaskCard from '@/components/ui/TaskCard';
 import Button from '@/components/ui/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import FloatingActionButton from '@/components/ui/FloatingActionButton';
+import ChatBot from '@/components/ui/ChatBot';
 import { FoodDonation, DeliveryTask } from '@/types';
 
 export default function HomeScreen() {
@@ -29,6 +32,7 @@ export default function HomeScreen() {
     fetchTasks, 
     getActiveTasksByVolunteer 
   } = useTaskStore();
+  const { isVisible, setVisible, setContext } = useChatStore();
   
   const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -36,13 +40,22 @@ export default function HomeScreen() {
   useEffect(() => {
     loadData();
     
+    // Set chat context
+    if (user) {
+      setContext({
+        userRole: user.role,
+        currentScreen: 'home',
+        userName: user.name,
+      });
+    }
+    
     // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [user]);
   
   const loadData = async () => {
     await Promise.all([
@@ -67,6 +80,14 @@ export default function HomeScreen() {
   
   const handleAddDonation = () => {
     router.push('/(app)/(tabs)/create-donation');
+  };
+
+  const handleChatPress = () => {
+    setVisible(true);
+  };
+
+  const handleChatClose = () => {
+    setVisible(false);
   };
   
   // Render content based on user role
@@ -264,43 +285,58 @@ export default function HomeScreen() {
   const styles = createStyles(theme);
   
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-            colors={[theme.primary]}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'User'}</Text>
-            <View style={styles.locationContainer}>
-              <MapPin size={16} color={theme.text.secondary} />
-              <Text style={styles.location}>Anytown, CA</Text>
+    <View style={styles.container}>
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.contentContainer}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'User'}</Text>
+              <View style={styles.locationContainer}>
+                <MapPin size={16} color={theme.text.secondary} />
+                <Text style={styles.location}>Anytown, CA</Text>
+              </View>
+            </View>
+            
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                style={[styles.searchButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                activeOpacity={0.8}
+              >
+                <Search size={24} color={theme.text.primary} />
+              </TouchableOpacity>
+              <ThemeToggle />
             </View>
           </View>
           
-          <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={[styles.searchButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
-              activeOpacity={0.8}
-            >
-              <Search size={24} color={theme.text.primary} />
-            </TouchableOpacity>
-            <ThemeToggle />
-          </View>
-        </View>
-        
-        {renderRoleBasedContent()}
-      </ScrollView>
-    </Animated.View>
+          {renderRoleBasedContent()}
+        </ScrollView>
+      </Animated.View>
+
+      {/* Floating Action Button for Chat */}
+      <FloatingActionButton
+        onPress={handleChatPress}
+        hasUnreadMessages={false}
+      />
+
+      {/* Chat Bot Modal */}
+      <ChatBot
+        visible={isVisible}
+        onClose={handleChatClose}
+        currentScreen="home"
+      />
+    </View>
   );
 }
 
@@ -309,12 +345,15 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.background,
   },
+  content: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 100, // Extra padding for FAB
   },
   header: {
     flexDirection: 'row',

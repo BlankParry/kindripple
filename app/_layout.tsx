@@ -1,12 +1,15 @@
 import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { trpc } from '@/lib/trpc';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { requestNotificationPermissions, setupNotificationChannels, setupNotificationHandlers } from '@/lib/notifications';
+import { useNotificationStore } from '@/store/notification-store';
 
 function RootLayoutContent() {
   const { isDark } = useTheme();
+  const { setPermissionGranted } = useNotificationStore();
   
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -40,6 +43,33 @@ function RootLayoutContent() {
       }),
     ],
   }));
+
+  // Setup notifications on app start
+  useEffect(() => {
+    const initializeNotifications = async () => {
+      try {
+        // Request permissions
+        const granted = await requestNotificationPermissions();
+        setPermissionGranted(granted);
+
+        if (granted) {
+          // Setup notification channels
+          await setupNotificationChannels();
+          
+          // Setup notification handlers
+          const subscription = setupNotificationHandlers();
+          
+          return () => {
+            subscription?.remove();
+          };
+        }
+      } catch (error) {
+        console.error('Error initializing notifications:', error);
+      }
+    };
+
+    initializeNotifications();
+  }, [setPermissionGranted]);
 
   return (
     <>

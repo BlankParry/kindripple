@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, Linking, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
   User, 
@@ -10,17 +10,36 @@ import {
   Shield, 
   ChevronRight,
   Mail,
-  Phone
+  Phone,
+  Volume2,
+  Vibrate
 } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth-store';
+import { useNotificationStore } from '@/store/notification-store';
+import { useChatStore } from '@/store/chat-store';
+import { useTheme } from '@/contexts/ThemeContext';
 import Avatar from '@/components/ui/Avatar';
 import Card from '@/components/ui/Card';
-import COLORS from '@/constants/colors';
+import FloatingActionButton from '@/components/ui/FloatingActionButton';
+import ChatBot from '@/components/ui/ChatBot';
 
 export default function AccountScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { user, logout } = useAuthStore();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const { settings, updateSettings, getUnreadCount } = useNotificationStore();
+  const { isVisible, setVisible, setContext } = useChatStore();
+  
+  React.useEffect(() => {
+    // Set chat context
+    if (user) {
+      setContext({
+        userRole: user.role,
+        currentScreen: 'account',
+        userName: user.name,
+      });
+    }
+  }, [user]);
   
   const handleLogout = () => {
     Alert.alert(
@@ -53,22 +72,12 @@ export default function AccountScreen() {
 
   const handleNotificationsPress = () => {
     Alert.alert(
-      "Notifications",
-      `Notifications are currently ${notificationsEnabled ? 'enabled' : 'disabled'}. Would you like to ${notificationsEnabled ? 'disable' : 'enable'} them?`,
+      "Notification Settings",
+      "Manage your notification preferences below or tap to view detailed settings.",
       [
         {
-          text: "Cancel",
+          text: "Close",
           style: "cancel"
-        },
-        {
-          text: notificationsEnabled ? 'Disable' : 'Enable',
-          onPress: () => {
-            setNotificationsEnabled(!notificationsEnabled);
-            Alert.alert(
-              "Success", 
-              `Notifications have been ${!notificationsEnabled ? 'enabled' : 'disabled'}.`
-            );
-          }
         }
       ]
     );
@@ -82,6 +91,12 @@ export default function AccountScreen() {
         {
           text: "Cancel",
           style: "cancel"
+        },
+        {
+          text: "Chat with Ripple",
+          onPress: () => {
+            setVisible(true);
+          }
         },
         {
           text: "Email Support",
@@ -117,22 +132,30 @@ export default function AccountScreen() {
       ]
     );
   };
+
+  const handleChatPress = () => {
+    setVisible(true);
+  };
+
+  const handleChatClose = () => {
+    setVisible(false);
+  };
   
   // Get the appropriate color based on user role
   const getRoleColor = () => {
-    if (!user) return COLORS.primary;
+    if (!user) return theme.primary;
     
     switch (user.role) {
       case 'restaurant':
-        return COLORS.restaurant.primary;
+        return theme.restaurant.primary;
       case 'ngo':
-        return COLORS.ngo.primary;
+        return theme.ngo.primary;
       case 'volunteer':
-        return COLORS.volunteer.primary;
+        return theme.volunteer.primary;
       case 'admin':
-        return COLORS.admin.primary;
+        return theme.admin.primary;
       default:
-        return COLORS.primary;
+        return theme.primary;
     }
   };
   
@@ -153,129 +176,232 @@ export default function AccountScreen() {
         return 'User';
     }
   };
+
+  const styles = createStyles(theme, getRoleColor());
   
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Card style={styles.profileCard}>
-        <View style={styles.profileHeader}>
-          <Avatar
-            source={user?.avatar}
-            name={user?.name}
-            size={80}
-            userRole={user?.role}
-          />
-          
-          <View style={styles.profileInfo}>
-            <Text style={styles.name}>{user?.name}</Text>
-            <View style={[styles.roleBadge, { backgroundColor: getRoleColor() + '20' }]}>
-              <Text style={[styles.roleText, { color: getRoleColor() }]}>
-                {getRoleDisplayName()}
-              </Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
+        <Card style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <Avatar
+              source={user?.avatar}
+              name={user?.name}
+              size={80}
+              userRole={user?.role}
+            />
+            
+            <View style={styles.profileInfo}>
+              <Text style={styles.name}>{user?.name}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: getRoleColor() + '20' }]}>
+                <Text style={[styles.roleText, { color: getRoleColor() }]}>
+                  {getRoleDisplayName()}
+                </Text>
+              </View>
+              <Text style={styles.email}>{user?.email}</Text>
             </View>
-            <Text style={styles.email}>{user?.email}</Text>
           </View>
+          
+          <TouchableOpacity 
+            style={[styles.editButton, { borderColor: getRoleColor() }]}
+            onPress={handleProfilePress}
+          >
+            <Text style={[styles.editButtonText, { color: getRoleColor() }]}>
+              Edit Profile
+            </Text>
+          </TouchableOpacity>
+        </Card>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          
+          <Card style={styles.menuCard}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleProfilePress}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: getRoleColor() + '20' }]}>
+                  <User size={20} color={getRoleColor()} />
+                </View>
+                <Text style={styles.menuText}>Profile</Text>
+              </View>
+              <ChevronRight size={20} color={theme.text.light} />
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handleSettingsPress}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: getRoleColor() + '20' }]}>
+                  <Settings size={20} color={getRoleColor()} />
+                </View>
+                <Text style={styles.menuText}>Settings</Text>
+              </View>
+              <ChevronRight size={20} color={theme.text.light} />
+            </TouchableOpacity>
+          </Card>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          
+          <Card style={styles.menuCard}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleNotificationsPress}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: theme.ngo.primary + '20' }]}>
+                  <Bell size={20} color={theme.ngo.primary} />
+                </View>
+                <Text style={styles.menuText}>Food Listings</Text>
+              </View>
+              <View style={styles.menuItemRight}>
+                <Switch
+                  value={settings.foodListings}
+                  onValueChange={(value) => updateSettings({ foodListings: value })}
+                  trackColor={{ false: theme.border, true: theme.ngo.primary + '40' }}
+                  thumbColor={settings.foodListings ? theme.ngo.primary : theme.text.light}
+                />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: theme.volunteer.primary + '20' }]}>
+                  <User size={20} color={theme.volunteer.primary} />
+                </View>
+                <Text style={styles.menuText}>Volunteer Assignments</Text>
+              </View>
+              <View style={styles.menuItemRight}>
+                <Switch
+                  value={settings.volunteerAssignments}
+                  onValueChange={(value) => updateSettings({ volunteerAssignments: value })}
+                  trackColor={{ false: theme.border, true: theme.volunteer.primary + '40' }}
+                  thumbColor={settings.volunteerAssignments ? theme.volunteer.primary : theme.text.light}
+                />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: theme.restaurant.primary + '20' }]}>
+                  <Bell size={20} color={theme.restaurant.primary} />
+                </View>
+                <Text style={styles.menuText}>Delivery Updates</Text>
+              </View>
+              <View style={styles.menuItemRight}>
+                <Switch
+                  value={settings.deliveryUpdates}
+                  onValueChange={(value) => updateSettings({ deliveryUpdates: value })}
+                  trackColor={{ false: theme.border, true: theme.restaurant.primary + '40' }}
+                  thumbColor={settings.deliveryUpdates ? theme.restaurant.primary : theme.text.light}
+                />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: theme.info + '20' }]}>
+                  <Volume2 size={20} color={theme.info} />
+                </View>
+                <Text style={styles.menuText}>Sound</Text>
+              </View>
+              <View style={styles.menuItemRight}>
+                <Switch
+                  value={settings.soundEnabled}
+                  onValueChange={(value) => updateSettings({ soundEnabled: value })}
+                  trackColor={{ false: theme.border, true: theme.info + '40' }}
+                  thumbColor={settings.soundEnabled ? theme.info : theme.text.light}
+                />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: theme.info + '20' }]}>
+                  <Vibrate size={20} color={theme.info} />
+                </View>
+                <Text style={styles.menuText}>Vibration</Text>
+              </View>
+              <View style={styles.menuItemRight}>
+                <Switch
+                  value={settings.vibrationEnabled}
+                  onValueChange={(value) => updateSettings({ vibrationEnabled: value })}
+                  trackColor={{ false: theme.border, true: theme.info + '40' }}
+                  thumbColor={settings.vibrationEnabled ? theme.info : theme.text.light}
+                />
+              </View>
+            </TouchableOpacity>
+          </Card>
         </View>
         
-        <TouchableOpacity 
-          style={[styles.editButton, { borderColor: getRoleColor() }]}
-          onPress={handleProfilePress}
-        >
-          <Text style={[styles.editButtonText, { color: getRoleColor() }]}>
-            Edit Profile
-          </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Support</Text>
+          
+          <Card style={styles.menuCard}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleHelpPress}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: theme.info + '20' }]}>
+                  <HelpCircle size={20} color={theme.info} />
+                </View>
+                <Text style={styles.menuText}>Help & Support</Text>
+              </View>
+              <ChevronRight size={20} color={theme.text.light} />
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handlePrivacyPress}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIcon, { backgroundColor: theme.info + '20' }]}>
+                  <Shield size={20} color={theme.info} />
+                </View>
+                <Text style={styles.menuText}>Privacy Policy</Text>
+              </View>
+              <ChevronRight size={20} color={theme.text.light} />
+            </TouchableOpacity>
+          </Card>
+        </View>
+        
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <LogOut size={20} color={theme.error} />
+          <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-      </Card>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
         
-        <Card style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuItem} onPress={handleProfilePress}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: getRoleColor() + '20' }]}>
-                <User size={20} color={getRoleColor()} />
-              </View>
-              <Text style={styles.menuText}>Profile</Text>
-            </View>
-            <ChevronRight size={20} color={COLORS.text.light} />
-          </TouchableOpacity>
-          
-          <View style={styles.divider} />
-          
-          <TouchableOpacity style={styles.menuItem} onPress={handleSettingsPress}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: getRoleColor() + '20' }]}>
-                <Settings size={20} color={getRoleColor()} />
-              </View>
-              <Text style={styles.menuText}>Settings</Text>
-            </View>
-            <ChevronRight size={20} color={COLORS.text.light} />
-          </TouchableOpacity>
-          
-          <View style={styles.divider} />
-          
-          <TouchableOpacity style={styles.menuItem} onPress={handleNotificationsPress}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: getRoleColor() + '20' }]}>
-                <Bell size={20} color={getRoleColor()} />
-              </View>
-              <Text style={styles.menuText}>Notifications</Text>
-            </View>
-            <View style={styles.menuItemRight}>
-              <Text style={styles.menuItemValue}>
-                {notificationsEnabled ? 'On' : 'Off'}
-              </Text>
-              <ChevronRight size={20} color={COLORS.text.light} />
-            </View>
-          </TouchableOpacity>
-        </Card>
-      </View>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Support</Text>
-        
-        <Card style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuItem} onPress={handleHelpPress}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: COLORS.info + '20' }]}>
-                <HelpCircle size={20} color={COLORS.info} />
-              </View>
-              <Text style={styles.menuText}>Help & Support</Text>
-            </View>
-            <ChevronRight size={20} color={COLORS.text.light} />
-          </TouchableOpacity>
-          
-          <View style={styles.divider} />
-          
-          <TouchableOpacity style={styles.menuItem} onPress={handlePrivacyPress}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIcon, { backgroundColor: COLORS.info + '20' }]}>
-                <Shield size={20} color={COLORS.info} />
-              </View>
-              <Text style={styles.menuText}>Privacy Policy</Text>
-            </View>
-            <ChevronRight size={20} color={COLORS.text.light} />
-          </TouchableOpacity>
-        </Card>
-      </View>
-      
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <LogOut size={20} color={COLORS.error} />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.versionText}>Version 1.0.0</Text>
-    </ScrollView>
+        <Text style={styles.versionText}>Version 1.0.0</Text>
+      </ScrollView>
+
+      {/* Floating Action Button for Chat */}
+      <FloatingActionButton
+        onPress={handleChatPress}
+        hasUnreadMessages={getUnreadCount() > 0}
+      />
+
+      {/* Chat Bot Modal */}
+      <ChatBot
+        visible={isVisible}
+        onClose={handleChatClose}
+        currentScreen="account"
+      />
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any, roleColor: string) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: theme.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   contentContainer: {
     padding: 16,
+    paddingBottom: 100, // Extra padding for FAB
   },
   profileCard: {
     marginBottom: 24,
@@ -292,7 +418,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: theme.text.primary,
     marginBottom: 4,
   },
   roleBadge: {
@@ -308,7 +434,7 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: theme.text.secondary,
   },
   editButton: {
     borderWidth: 1,
@@ -326,7 +452,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: theme.text.primary,
     marginBottom: 16,
   },
   menuCard: {
@@ -342,6 +468,7 @@ const styles = StyleSheet.create({
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   menuIcon: {
     width: 40,
@@ -353,20 +480,16 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: theme.text.primary,
+    flex: 1,
   },
   menuItemRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  menuItemValue: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginRight: 8,
-  },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: theme.border,
     marginHorizontal: 16,
   },
   logoutButton: {
@@ -374,7 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
-    backgroundColor: COLORS.card,
+    backgroundColor: theme.surface,
     borderRadius: 16,
     marginBottom: 24,
     shadowColor: '#000',
@@ -386,12 +509,12 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.error,
+    color: theme.error,
     marginLeft: 8,
   },
   versionText: {
     fontSize: 14,
-    color: COLORS.text.light,
+    color: theme.text.light,
     textAlign: 'center',
     marginBottom: 24,
   },
