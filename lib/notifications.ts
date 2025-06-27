@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { router } from 'expo-router';
 
 // Configure notification behavior
@@ -34,9 +33,9 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     return false;
   }
 
-  if (!Device.isDevice) {
-    console.log('Must use physical device for notifications');
-    return false;
+  // Check if running on a physical device
+  if (__DEV__ && Platform.OS === 'ios') {
+    console.log('Push notifications may not work in iOS simulator');
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();

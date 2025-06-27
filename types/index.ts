@@ -47,7 +47,7 @@ export interface FoodDonation {
   isVegetarian: boolean;
   expiryTime: string; // ISO date string
   pickupTime: string; // ISO date string
-  status: 'available' | 'claimed' | 'in-progress' | 'completed' | 'expired';
+  status: 'available' | 'claimed' | 'in-progress' | 'completed' | 'expired' | 'collected' | 'delivered';
   claimedBy?: string; // NGO ID
   assignedVolunteer?: string; // Volunteer ID
   location: {
