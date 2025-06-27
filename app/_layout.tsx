@@ -1,9 +1,13 @@
 import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import { trpc } from '@/lib/trpc';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
-export default function RootLayout() {
+function RootLayoutContent() {
+  const { isDark } = useTheme();
+  
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -38,16 +42,41 @@ export default function RootLayout() {
   }));
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(app)" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/login" options={{ title: "Login" }} />
-          <Stack.Screen name="auth/register" options={{ title: "Register" }} />
-        </Stack>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(app)" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="auth/login" 
+              options={{ 
+                title: "Login",
+                headerStyle: { backgroundColor: isDark ? '#1e1e1e' : '#ffffff' },
+                headerTintColor: isDark ? '#f9fafb' : '#1f2937',
+              }} 
+            />
+            <Stack.Screen 
+              name="auth/register" 
+              options={{ 
+                title: "Register",
+                headerStyle: { backgroundColor: isDark ? '#1e1e1e' : '#ffffff' },
+                headerTintColor: isDark ? '#f9fafb' : '#1f2937',
+              }} 
+            />
+          </Stack>
+        </QueryClientProvider>
+      </trpc.Provider>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutContent />
+    </ThemeProvider>
   );
 }
 

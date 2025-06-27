@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth-store';
+import { useTheme } from '@/contexts/ThemeContext';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import COLORS from '@/constants/colors';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { login, isLoading, error } = useAuthStore();
   
   const [email, setEmail] = useState('');
@@ -61,24 +63,7 @@ export default function LoginScreen() {
     router.push('/auth/register');
   };
 
-  // Demo login credentials
-  const demoCredentials = [
-    { role: 'Restaurant', email: 'contact@greenleafbistro.com', password: 'password123' },
-    { role: 'NGO', email: 'contact@foodforall.org', password: 'password123' },
-    { role: 'Volunteer', email: 'alex.j@example.com', password: 'password123' },
-  ];
-
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    
-    try {
-      await login(demoEmail, demoPassword);
-      router.replace('/(app)/(tabs)');
-    } catch (error) {
-      console.error('Demo login error:', error);
-    }
-  };
+  const styles = createStyles(theme);
 
   return (
     <KeyboardAvoidingView
@@ -90,8 +75,18 @@ export default function LoginScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue reducing food waste</Text>
+          <View style={styles.headerTop}>
+            <View style={styles.brandContainer}>
+              <Text style={styles.brandName}>KindRipple</Text>
+              <Text style={styles.brandTagline}>Reducing food waste together</Text>
+            </View>
+            <ThemeToggle />
+          </View>
+          
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign in to continue reducing food waste</Text>
+          </View>
         </View>
         
         <View style={styles.formContainer}>
@@ -132,95 +127,84 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        
-        <View style={styles.demoContainer}>
-          <Text style={styles.demoTitle}>Quick Demo Access</Text>
-          
-          <View style={styles.demoButtonsContainer}>
-            {demoCredentials.map((demo, index) => (
-              <Button
-                key={index}
-                title={`Login as ${demo.role}`}
-                onPress={() => handleDemoLogin(demo.email, demo.password)}
-                variant="outline"
-                size="small"
-                userRole={demo.role.toLowerCase() as any}
-                style={styles.demoButton}
-              />
-            ))}
-          </View>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: theme.background,
   },
   contentContainer: {
     padding: 24,
+    paddingTop: 60,
   },
   header: {
-    marginTop: 40,
     marginBottom: 40,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 32,
+  },
+  brandContainer: {
+    flex: 1,
+  },
+  brandName: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: theme.primary,
+    marginBottom: 4,
+  },
+  brandTagline: {
+    fontSize: 16,
+    color: theme.text.secondary,
+    fontWeight: '500',
+  },
+  welcomeContainer: {
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: theme.text.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: theme.text.secondary,
+    lineHeight: 24,
   },
   formContainer: {
     marginBottom: 40,
   },
   button: {
-    marginTop: 16,
+    marginTop: 24,
     borderRadius: 12,
+    height: 52,
   },
   errorText: {
-    color: COLORS.error,
+    color: theme.error,
     marginTop: 8,
     marginBottom: 8,
+    fontSize: 14,
   },
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 32,
   },
   registerText: {
-    color: COLORS.text.secondary,
+    color: theme.text.secondary,
+    fontSize: 16,
   },
   registerLink: {
-    color: COLORS.primary,
+    color: theme.primary,
     fontWeight: '600',
     marginLeft: 4,
-  },
-  demoContainer: {
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  demoTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  demoButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  demoButton: {
-    flex: 1,
-    minWidth: '30%',
   },
 });

@@ -5,9 +5,11 @@ import { supabase } from '@/lib/supabase';
 
 interface TaskState {
   tasks: DeliveryTask[];
+  userNames: Record<string, string>; // Cache for user names
   isLoading: boolean;
   error: string | null;
   fetchTasks: () => Promise<void>;
+  fetchUserNames: (userIds: string[]) => Promise<void>;
   createTask: (task: Omit<DeliveryTask, 'id' | 'createdAt'>) => Promise<DeliveryTask>;
   updateTaskStatus: (taskId: string, status: DeliveryTask['status']) => Promise<void>;
   completeTask: (taskId: string) => Promise<void>;
@@ -15,6 +17,7 @@ interface TaskState {
   getTasksByVolunteer: (volunteerId: string) => DeliveryTask[];
   getTasksByNGO: (ngoId: string) => DeliveryTask[];
   getActiveTasksByVolunteer: (volunteerId: string) => DeliveryTask[];
+  getUserName: (userId: string) => string;
 }
 
 // Helper function to map Supabase task to our app DeliveryTask type
@@ -46,8 +49,43 @@ const mapSupabaseTask = (task: any): DeliveryTask => {
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [...mockTasks],
+  userNames: {},
   isLoading: false,
   error: null,
+  
+  fetchUserNames: async (userIds: string[]) => {
+    const { userNames } = get();
+    const missingIds = userIds.filter(id => id && !userNames[id]);
+    
+    if (missingIds.length === 0) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name')
+        .in('id', missingIds);
+
+      if (error) {
+        console.warn('Error fetching user names:', error.message);
+        return;
+      }
+
+      if (data) {
+        const newNames: Record<string, string> = {};
+        data.forEach(user => {
+          if (user.name) {
+            newNames[user.id] = user.name;
+          }
+        });
+        
+        set(state => ({
+          userNames: { ...state.userNames, ...newNames }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch user names:', error);
+    }
+  },
   
   fetchTasks: async () => {
     set({ isLoading: true, error: null });
@@ -62,15 +100,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         console.warn('Error fetching tasks from Supabase, using mock data:', error.message);
         // Fall back to mock data
         set({ tasks: [...mockTasks], isLoading: false });
+        
+        // Fetch names for mock data
+        const userIds = mockTasks.flatMap(t => [t.volunteerId, t.ngoId, t.restaurantId]).filter(Boolean);
+        get().fetchUserNames(userIds);
         return;
       }
 
       if (data && data.length > 0) {
         const mappedTasks = data.map(mapSupabaseTask);
         set({ tasks: mappedTasks, isLoading: false });
+        
+        // Fetch user names for all related users
+        const userIds = mappedTasks.flatMap(t => [t.volunteerId, t.ngoId, t.restaurantId]).filter(Boolean);
+        get().fetchUserNames(userIds);
       } else {
         // If no tasks in database, use mock data
         set({ tasks: [...mockTasks], isLoading: false });
+        
+        // Fetch names for mock data
+        const userIds = mockTasks.flatMap(t => [t.volunteerId, t.ngoId, t.restaurantId]).filter(Boolean);
+        get().fetchUserNames(userIds);
       }
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
@@ -79,6 +129,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         isLoading: false,
         tasks: [...mockTasks] // Fall back to mock data
       });
+      
+      // Fetch names for mock data
+      const userIds = mockTasks.flatMap(t => [t.volunteerId, t.ngoId, t.restaurantId]).filter(Boolean);
+      get().fetchUserNames(userIds);
     }
   },
   
@@ -121,6 +175,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           isLoading: false
         }));
         
+        // Fetch user names
+        const userIds = [task.volunteerId, task.ngoId, task.restaurantId].filter(Boolean);
+        get().fetchUserNames(userIds);
+        
         return newTask;
       }
 
@@ -129,6 +187,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         tasks: [...state.tasks, newTask],
         isLoading: false
       }));
+      
+      // Fetch user names
+      const userIds = [newTask.volunteerId, newTask.ngoId, newTask.restaurantId].filter(Boolean);
+      get().fetchUserNames(userIds);
       
       return newTask;
     } catch (error) {
@@ -159,7 +221,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: "Failed to update task status", isLoading: false });
-      throw error;
     }
   },
   
@@ -196,8 +257,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: "Failed to complete task", isLoading: false });
-      throw error;
     }
+  },
+  
+  getUserName: (userId: string) => {
+    const { userNames } = get();
+    return userNames[userId] || `User #${userId.slice(-4)}`;
   },
   
   getTaskById: (id) => {

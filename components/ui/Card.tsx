@@ -1,43 +1,62 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
-import COLORS from '@/constants/colors';
+import { StyleSheet, View, ViewStyle, Platform } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  elevation?: number;
+  animated?: boolean;
+  animationDelay?: number;
 }
 
 export const Card: React.FC<CardProps> = ({ 
   children, 
   style, 
-  elevation = 2 
+  animated = true,
+  animationDelay = 0
 }) => {
+  const { theme } = useTheme();
+  
+  const cardStyles = createStyles(theme);
+
+  if (animated && Platform.OS !== 'web') {
+    return (
+      <Animated.View 
+        entering={FadeInUp.delay(animationDelay).duration(300)}
+        style={[cardStyles.card, style]}
+      >
+        {children}
+      </Animated.View>
+    );
+  }
+
   return (
-    <View 
-      style={[
-        styles.card, 
-        { 
-          shadowOpacity: 0.08 * elevation,
-          elevation: elevation,
-        },
-        style
-      ]}
-    >
+    <View style={[cardStyles.card, style]}>
       {children}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
+    backgroundColor: theme.card,
+    borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    marginVertical: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      },
+    }),
   },
 });
 

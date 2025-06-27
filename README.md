@@ -1,209 +1,214 @@
-# 🌊 KindRipple
+# KindRipple 🌊
 
-**Connecting hearts, reducing waste, creating impact.**
+**Reducing food waste, one meal at a time.**
 
-KindRipple is a beautiful React Native app that bridges the gap between restaurants with surplus food, NGOs in need, and volunteers ready to help. Together, we create ripples of kindness that transform communities.
-
-![KindRipple Banner](https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1200&h=400&fit=crop&crop=center)
+KindRipple is a comprehensive food donation platform that connects restaurants with surplus food to NGOs and volunteers, creating an efficient ecosystem to reduce food waste while helping those in need.
 
 ## ✨ Features
 
-### 🍽️ For Restaurants
-- **Smart Donation Management** - Easily post surplus food with photos, quantities, and pickup details
-- **Real-time Tracking** - Monitor donation status from posting to delivery
-- **Impact Dashboard** - See your contribution to reducing food waste
+### 🏪 For Restaurants
+- **Easy Donation Creation**: Post surplus food with photos, descriptions, and pickup details
+- **Real-time Tracking**: Monitor donation status from creation to delivery
+- **Impact Analytics**: View your contribution to reducing food waste
+- **Smart Notifications**: Get updates when NGOs claim your donations
 
-### 🏠 For NGOs
-- **Browse Available Donations** - Discover nearby food donations in real-time
-- **Request System** - Simple one-tap requesting with automatic notifications
-- **Inventory Tracking** - Keep track of received donations and distribution
+### 🏢 For NGOs
+- **Browse Available Food**: Discover nearby food donations in real-time
+- **Quick Claiming**: Reserve donations with one tap
+- **Volunteer Coordination**: Assign volunteers for pickup and delivery
+- **Inventory Management**: Track claimed donations and delivery status
 
 ### 🚗 For Volunteers
-- **Delivery Tasks** - Accept and complete food delivery missions
-- **Route Optimization** - Integrated maps for efficient pickup and delivery
-- **Impact Metrics** - Track your volunteer hours and meals delivered
+- **Task Dashboard**: View assigned pickup and delivery tasks
+- **Navigation Integration**: Get directions to pickup and dropoff locations
+- **Status Updates**: Mark tasks as in-progress or completed
+- **Impact Tracking**: See how many meals you've helped deliver
 
-### 👥 For Everyone
-- **Beautiful UI** - Clean, intuitive design inspired by modern iOS apps
-- **Real-time Updates** - Live notifications and status updates
-- **Community Impact** - See collective impact metrics and success stories
-- **Multi-platform** - Works seamlessly on iOS, Android, and Web
+### 👨‍💼 For Admins
+- **Platform Overview**: Monitor all donations, tasks, and user activity
+- **Analytics Dashboard**: View platform-wide impact metrics
+- **User Management**: Oversee restaurant, NGO, and volunteer accounts
+- **System Health**: Track platform performance and usage
+
+## 🎨 Design Philosophy
+
+KindRipple features a modern, role-based design system:
+
+- **Restaurant Theme**: Purple accents (`#8c3ccc`) for donation management
+- **NGO Theme**: Orange accents (`#ee9a40`) for claiming and coordination  
+- **Volunteer Theme**: Green accents (`#4ade80`) for task completion
+- **Admin Theme**: Blue accents (`#3b82f6`) for oversight and analytics
+
+The app supports both light and dark themes with seamless switching and system preference detection.
 
 ## 🛠️ Tech Stack
 
-### Frontend
-- **React Native** with Expo SDK 52
-- **Expo Router** for file-based navigation
-- **TypeScript** for type safety
-- **Zustand** for state management
-- **React Query (TanStack)** for server state
-- **Lucide React Native** for beautiful icons
+- **Frontend**: React Native with Expo
+- **Navigation**: Expo Router (file-based routing)
+- **State Management**: Zustand with AsyncStorage persistence
+- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
+- **Styling**: React Native StyleSheet with custom theme system
+- **Maps**: MapLibre for location services
+- **Icons**: Lucide React Native
+- **Type Safety**: TypeScript throughout
 
-### Backend
-- **Node.js** with Hono framework
-- **tRPC** for end-to-end type safety
-- **Supabase** for database and real-time features
-- **TypeScript** throughout the stack
-
-### Development Tools
-- **Expo Dev Tools** for development
-- **ESLint & Prettier** for code quality
-- **Bun** for fast package management
-
-## 🚀 Quick Start
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ or Bun
+
+- Node.js 18+ 
+- npm or yarn
 - Expo CLI (`npm install -g @expo/cli`)
-- iOS Simulator (Mac) or Android Studio
-- Supabase account
+- iOS Simulator (Mac) or Android Studio (for emulators)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/kindriple.git
-   cd kindriple
+   git clone https://github.com/yourusername/kindripple.git
+   cd kindripple
    ```
 
 2. **Install dependencies**
    ```bash
-   # Using bun (recommended)
-   bun install
-   
-   # Or using npm
    npm install
+   # or
+   yarn install
    ```
 
-3. **Set up Supabase**
+3. **Set up environment variables**
    ```bash
-   # Create a new Supabase project at https://supabase.com
-   # Copy your project URL and anon key
-   cp .env.example .env.local
+   cp .env.example .env
    ```
    
-   Update `.env.local` with your Supabase credentials:
+   Fill in your Supabase credentials:
    ```env
    EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-4. **Set up the database**
-   ```bash
-   # Run the SQL setup script in your Supabase SQL editor
-   # File: scripts/supabase-setup.sql
-   ```
+4. **Set up Supabase database**
+   
+   Run the SQL script in `scripts/supabase-setup.sql` in your Supabase SQL editor to create the necessary tables and policies.
 
 5. **Start the development server**
    ```bash
-   bun start
-   # or
    npx expo start
    ```
 
 6. **Run on your device**
-   - **iOS**: Press `i` or scan QR code with Camera app
-   - **Android**: Press `a` or scan QR code with Expo Go app
-   - **Web**: Press `w` to open in browser
+   - **iOS**: Press `i` to open iOS Simulator
+   - **Android**: Press `a` to open Android Emulator  
+   - **Web**: Press `w` to open in web browser
+   - **Physical Device**: Scan QR code with Expo Go app
 
-## 📱 Development
+## 📱 App Structure
 
-### Project Structure
 ```
-kindriple/
-├── app/                    # Expo Router pages
-│   ├── (app)/             # Authenticated app routes
-│   │   ├── (tabs)/        # Tab navigation
-│   │   └── auth/          # Authentication screens
-├── components/            # Reusable UI components
-├── backend/               # tRPC backend routes
-├── hooks/                 # Custom React hooks
-├── store/                 # Zustand state stores
-├── types/                 # TypeScript type definitions
-├── utils/                 # Utility functions
-└── constants/             # App constants
+app/
+├── (app)/                 # Authenticated app routes
+│   ├── (tabs)/           # Tab navigation
+│   │   ├── index.tsx     # Home screen (role-based)
+│   │   ├── tasks.tsx     # Tasks management
+│   │   ├── impact.tsx    # Impact analytics
+│   │   └── account.tsx   # User account
+│   ├── donation/[id].tsx # Donation details
+│   └── task/[id].tsx     # Task details
+├── auth/                 # Authentication screens
+│   ├── login.tsx         # Login screen
+│   └── register.tsx      # Registration screen
+└── _layout.tsx           # Root layout
+
+components/
+├── ui/                   # Reusable UI components
+│   ├── DonationCard.tsx  # Donation display card
+│   ├── TaskCard.tsx      # Task display card
+│   ├── Button.tsx        # Custom button
+│   └── ThemeToggle.tsx   # Theme switcher
+└── ...
+
+store/                    # Zustand state management
+├── auth-store.ts         # Authentication state
+├── donation-store.ts     # Donations management
+└── task-store.ts         # Tasks management
 ```
 
-### Key Commands
+## 🔧 Development
+
+### Running Tests
 ```bash
-# Start development server
-bun start
-
-# Run on specific platform
-bun ios
-bun android
-bun web
-
-# Type checking
-bun type-check
-
-# Build for production
-bun build
-
-# Reset cache
-bun start --clear
+npm test
+# or
+yarn test
 ```
 
-### Environment Setup
-Create `.env.local` with:
-```env
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+### Building for Production
+```bash
+# Build for all platforms
+npx expo build
+
+# Build for specific platform
+npx expo build:ios
+npx expo build:android
 ```
 
-## 🎨 Design System
+### Code Style
+The project uses ESLint and Prettier for code formatting:
+```bash
+npm run lint
+npm run format
+```
 
-KindRipple follows a clean, modern design inspired by:
-- **iOS Human Interface Guidelines**
-- **Material Design principles**
-- **Airbnb's visual language**
-- **Linear's minimalist approach**
+## 🌐 Environment Setup
 
-### Color Palette
-- **Primary**: Soft blue (#3B82F6)
-- **Secondary**: Warm green (#10B981)
-- **Background**: Clean whites and subtle grays
-- **Accent**: Gentle pastels for status indicators
+### Development
+- Uses Expo development build
+- Hot reloading enabled
+- Debug mode with React Developer Tools
+
+### Production
+- Optimized bundle size
+- Error tracking with Sentry (optional)
+- Analytics with Expo Analytics
+
+## 📊 Database Schema
+
+The app uses Supabase with the following main tables:
+
+- **users**: User profiles with role-based access
+- **donations**: Food donation listings
+- **tasks**: Delivery task assignments
+- **metrics**: Impact tracking data
+
+See `scripts/supabase-setup.sql` for the complete schema.
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Make your changes**
-4. **Test thoroughly**
-5. **Submit a pull request**
-
-### Development Guidelines
-- Follow TypeScript best practices
-- Use meaningful commit messages
-- Test on multiple platforms
-- Maintain consistent code style
-- Update documentation as needed
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🌟 Acknowledgments
+## 🙏 Acknowledgments
 
-- **Expo Team** for the amazing development platform
+- **Expo Team** for the amazing React Native framework
 - **Supabase** for the backend infrastructure
-- **Open Source Community** for the incredible tools and libraries
-- **Food rescue organizations** for inspiring this project
+- **Lucide** for the beautiful icons
+- **MapLibre** for mapping capabilities
 
 ## 📞 Support
 
-- **Documentation**: [Wiki](https://github.com/yourusername/kindriple/wiki)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/kindriple/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/kindriple/discussions)
+- 📧 Email: support@kindripple.com
+- 💬 Discord: [Join our community](https://discord.gg/kindripple)
+- 📖 Documentation: [docs.kindripple.com](https://docs.kindripple.com)
 
 ---
 
-**Made with ❤️ for a better world**
-
-*Every meal saved is a step towards reducing food waste and feeding those in need.*
+**Made with ❤️ to reduce food waste and help communities**

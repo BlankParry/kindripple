@@ -2,17 +2,26 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { Clock, MapPin, Users, Navigation } from 'lucide-react-native';
 import { FoodDonation } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useDonationStore } from '@/store/donation-store';
 import Card from './Card';
 import StatusBadge from './StatusBadge';
 import { openLocationInMaps } from '@/utils/navigation';
-import COLORS from '@/constants/colors';
 
 interface DonationCardProps {
   donation: FoodDonation;
   onPress: (donation: FoodDonation) => void;
+  animationDelay?: number;
 }
 
-export const DonationCard: React.FC<DonationCardProps> = ({ donation, onPress }) => {
+export const DonationCard: React.FC<DonationCardProps> = ({ 
+  donation, 
+  onPress,
+  animationDelay = 0
+}) => {
+  const { theme } = useTheme();
+  const { getUserName } = useDonationStore();
+  
   // Calculate time remaining until expiry
   const getTimeRemaining = () => {
     const now = new Date();
@@ -38,12 +47,18 @@ export const DonationCard: React.FC<DonationCardProps> = ({ donation, onPress })
     openLocationInMaps(donation.location);
   };
 
+  // Get restaurant name from store
+  const restaurantName = getUserName(donation.restaurantId);
+
+  const styles = createStyles(theme);
+
   return (
     <TouchableOpacity 
       activeOpacity={0.8}
       onPress={() => onPress(donation)}
+      style={styles.touchable}
     >
-      <Card style={styles.card}>
+      <Card style={styles.card} animationDelay={animationDelay}>
         <View style={styles.imageContainer}>
           <Image 
             source={{ uri: donation.image }} 
@@ -62,31 +77,31 @@ export const DonationCard: React.FC<DonationCardProps> = ({ donation, onPress })
         
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={1}>{donation.title}</Text>
-          <Text style={styles.restaurant}>{donation.restaurantName}</Text>
+          <Text style={styles.restaurant}>{restaurantName}</Text>
           <Text style={styles.description} numberOfLines={2}>{donation.description}</Text>
           
           <View style={styles.infoContainer}>
             <View style={styles.infoItem}>
-              <Clock size={16} color={COLORS.text.secondary} />
+              <Clock size={16} color={theme.text.secondary} />
               <Text style={styles.infoText}>{getTimeRemaining()}</Text>
             </View>
             
             <View style={styles.infoItem}>
-              <Users size={16} color={COLORS.text.secondary} />
+              <Users size={16} color={theme.text.secondary} />
               <Text style={styles.infoText}>{donation.quantity} meals</Text>
             </View>
           </View>
           
           <View style={styles.locationContainer}>
             <View style={styles.infoItem}>
-              <MapPin size={16} color={COLORS.text.secondary} />
+              <MapPin size={16} color={theme.text.secondary} />
               <Text style={styles.infoText} numberOfLines={1}>{donation.location.address}</Text>
             </View>
             <TouchableOpacity 
-              style={styles.navigateButton}
+              style={[styles.navigateButton, { backgroundColor: theme.background }]}
               onPress={handleNavigateToLocation}
             >
-              <Navigation size={16} color={COLORS.volunteer.primary} />
+              <Navigation size={16} color={theme.volunteer.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -95,11 +110,18 @@ export const DonationCard: React.FC<DonationCardProps> = ({ donation, onPress })
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
+  touchable: {
+    marginBottom: 16,
+  },
   card: {
     padding: 0,
     overflow: 'hidden',
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   imageContainer: {
     position: 'relative',
@@ -118,13 +140,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   vegBadge: {
-    backgroundColor: COLORS.volunteer.primary,
+    backgroundColor: theme.volunteer.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   vegText: {
-    color: '#FFFFFF',
+    color: theme.text.inverse,
     fontWeight: '600',
     fontSize: 12,
   },
@@ -134,18 +156,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: theme.text.primary,
     marginBottom: 4,
   },
   restaurant: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: theme.restaurant.primary,
     marginBottom: 8,
+    fontWeight: '500',
   },
   description: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: theme.text.secondary,
     marginBottom: 12,
+    lineHeight: 20,
   },
   infoContainer: {
     flexDirection: 'row',
@@ -160,7 +184,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: theme.text.secondary,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -169,8 +193,12 @@ const styles = StyleSheet.create({
   },
   navigateButton: {
     padding: 8,
-    borderRadius: 6,
-    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });
 

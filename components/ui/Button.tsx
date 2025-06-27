@@ -9,8 +9,16 @@ import {
   TouchableOpacityProps,
   Platform
 } from 'react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  withTiming
+} from 'react-native-reanimated';
 import { UserRole } from '@/types';
-import COLORS from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -36,19 +44,23 @@ export const Button: React.FC<ButtonProps> = ({
   textStyle,
   ...props
 }) => {
+  const { theme } = useTheme();
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
   // Get the appropriate color based on user role
   const getRoleColor = () => {
     switch (userRole) {
       case 'restaurant':
-        return variant === 'primary' ? COLORS.restaurant.primary : COLORS.restaurant.secondary;
+        return variant === 'primary' ? theme.restaurant.primary : theme.restaurant.secondary;
       case 'ngo':
-        return variant === 'primary' ? COLORS.ngo.primary : COLORS.ngo.secondary;
+        return variant === 'primary' ? theme.ngo.primary : theme.ngo.secondary;
       case 'volunteer':
-        return variant === 'primary' ? COLORS.volunteer.primary : COLORS.volunteer.secondary;
+        return variant === 'primary' ? theme.volunteer.primary : theme.volunteer.secondary;
       case 'admin':
-        return variant === 'primary' ? COLORS.admin.primary : COLORS.admin.secondary;
+        return variant === 'primary' ? theme.admin.primary : theme.admin.secondary;
       default:
-        return variant === 'primary' ? COLORS.volunteer.primary : COLORS.volunteer.secondary;
+        return variant === 'primary' ? theme.primary : theme.secondary;
     }
   };
 
@@ -114,14 +126,6 @@ export const Button: React.FC<ButtonProps> = ({
         break;
     }
     
-    // Disabled state
-    if (disabled || isLoading) {
-      buttonStyle = {
-        ...buttonStyle,
-        opacity: 0.6,
-      };
-    }
-    
     return buttonStyle;
   };
 
@@ -137,7 +141,7 @@ export const Button: React.FC<ButtonProps> = ({
       case 'primary':
         textStyleObj = {
           ...textStyleObj,
-          color: '#FFFFFF',
+          color: theme.text.inverse,
         };
         break;
       case 'secondary':
@@ -190,25 +194,53 @@ export const Button: React.FC<ButtonProps> = ({
       };
     } else if (Platform.OS === 'android') {
       return {
-        elevation: 2,
+        elevation: 3,
       };
     } else {
       // Web - use a simple border instead of shadow to avoid CSS issues
       return {
         borderWidth: variant === 'primary' ? 0 : 1,
-        borderColor: variant === 'primary' ? 'transparent' : COLORS.border,
+        borderColor: variant === 'primary' ? 'transparent' : theme.border,
       };
     }
   };
 
+  const handlePressIn = () => {
+    if (Platform.OS !== 'web') {
+      scale.value = withSpring(0.95, { damping: 15 });
+      opacity.value = withTiming(0.8, { duration: 100 });
+    }
+  };
+
+  const handlePressOut = () => {
+    if (Platform.OS !== 'web') {
+      scale.value = withSpring(1, { damping: 15 });
+      opacity.value = withTiming(1, { duration: 100 });
+    }
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    if (Platform.OS === 'web') {
+      return {};
+    }
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
+
   return (
-    <TouchableOpacity
+    <AnimatedTouchableOpacity
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || isLoading}
       style={[
         styles.button, 
         getButtonStyles(), 
         getShadowStyles(),
+        animatedStyle,
+        (disabled || isLoading) && { opacity: 0.6 },
         style
       ]}
       activeOpacity={0.8}
@@ -217,12 +249,12 @@ export const Button: React.FC<ButtonProps> = ({
       {isLoading ? (
         <ActivityIndicator 
           size="small" 
-          color={variant === 'primary' ? '#FFFFFF' : getRoleColor()} 
+          color={variant === 'primary' ? theme.text.inverse : getRoleColor()} 
         />
       ) : (
         <Text style={[getTextStyles(), textStyle]}>{title}</Text>
       )}
-    </TouchableOpacity>
+    </AnimatedTouchableOpacity>
   );
 };
 

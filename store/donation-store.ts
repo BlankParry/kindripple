@@ -5,9 +5,11 @@ import { supabase } from '@/lib/supabase';
 
 interface DonationState {
   donations: FoodDonation[];
+  userNames: Record<string, string>; // Cache for user names
   isLoading: boolean;
   error: string | null;
   fetchDonations: () => Promise<void>;
+  fetchUserNames: (userIds: string[]) => Promise<void>;
   addDonation: (donation: Omit<FoodDonation, 'id' | 'createdAt'>) => Promise<FoodDonation>;
   updateDonation: (id: string, updates: Partial<FoodDonation>) => Promise<void>;
   claimDonation: (donationId: string, ngoId: string) => Promise<void>;
@@ -16,6 +18,7 @@ interface DonationState {
   getDonationsByRestaurant: (restaurantId: string) => FoodDonation[];
   getAvailableDonations: () => FoodDonation[];
   getClaimedDonations: (ngoId: string) => FoodDonation[];
+  getUserName: (userId: string) => string;
 }
 
 // Helper function to map Supabase donation to our app FoodDonation type
@@ -45,8 +48,43 @@ const mapSupabaseDonation = (donation: any): FoodDonation => {
 
 export const useDonationStore = create<DonationState>((set, get) => ({
   donations: [...mockDonations],
+  userNames: {},
   isLoading: false,
   error: null,
+  
+  fetchUserNames: async (userIds: string[]) => {
+    const { userNames } = get();
+    const missingIds = userIds.filter(id => id && !userNames[id]);
+    
+    if (missingIds.length === 0) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name')
+        .in('id', missingIds);
+
+      if (error) {
+        console.warn('Error fetching user names:', error.message);
+        return;
+      }
+
+      if (data) {
+        const newNames: Record<string, string> = {};
+        data.forEach(user => {
+          if (user.name) {
+            newNames[user.id] = user.name;
+          }
+        });
+        
+        set(state => ({
+          userNames: { ...state.userNames, ...newNames }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch user names:', error);
+    }
+  },
   
   fetchDonations: async () => {
     set({ isLoading: true, error: null });
@@ -61,15 +99,27 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         console.warn('Error fetching donations from Supabase, using mock data:', error.message);
         // Fall back to mock data
         set({ donations: [...mockDonations], isLoading: false });
+        
+        // Fetch names for mock data
+        const userIds = mockDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+        get().fetchUserNames(userIds);
         return;
       }
 
       if (data && data.length > 0) {
         const mappedDonations = data.map(mapSupabaseDonation);
         set({ donations: mappedDonations, isLoading: false });
+        
+        // Fetch user names for all related users
+        const userIds = mappedDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+        get().fetchUserNames(userIds);
       } else {
         // If no donations in database, use mock data
         set({ donations: [...mockDonations], isLoading: false });
+        
+        // Fetch names for mock data
+        const userIds = mockDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+        get().fetchUserNames(userIds);
       }
     } catch (error) {
       console.error('Failed to fetch donations:', error);
@@ -78,6 +128,10 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         isLoading: false,
         donations: [...mockDonations] // Fall back to mock data
       });
+      
+      // Fetch names for mock data
+      const userIds = mockDonations.flatMap(d => [d.restaurantId, d.claimedBy, d.assignedVolunteer]).filter(Boolean);
+      get().fetchUserNames(userIds);
     }
   },
   
@@ -136,6 +190,9 @@ export const useDonationStore = create<DonationState>((set, get) => ({
           isLoading: false
         }));
         
+        // Fetch user names
+        get().fetchUserNames([donation.restaurantId]);
+        
         return newDonation;
       }
 
@@ -144,6 +201,9 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         donations: [newDonation, ...state.donations],
         isLoading: false
       }));
+      
+      // Fetch user names
+      get().fetchUserNames([newDonation.restaurantId]);
       
       return newDonation;
     } catch (error) {
@@ -189,6 +249,12 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         ),
         isLoading: false
       }));
+      
+      // Fetch user names for any new user IDs
+      const userIds = [updates.claimedBy, updates.assignedVolunteer].filter(Boolean);
+      if (userIds.length > 0) {
+        get().fetchUserNames(userIds);
+      }
     } catch (error) {
       set({ error: "Failed to update donation", isLoading: false });
       throw error;
@@ -234,6 +300,9 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         ),
         isLoading: false
       }));
+      
+      // Fetch NGO name
+      get().fetchUserNames([ngoId]);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to claim donation";
       set({ error: errorMessage, isLoading: false });
@@ -280,11 +349,19 @@ export const useDonationStore = create<DonationState>((set, get) => ({
         ),
         isLoading: false
       }));
+      
+      // Fetch volunteer name
+      get().fetchUserNames([volunteerId]);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to assign volunteer";
       set({ error: errorMessage, isLoading: false });
       throw error;
     }
+  },
+  
+  getUserName: (userId: string) => {
+    const { userNames } = get();
+    return userNames[userId] || `User #${userId.slice(-4)}`;
   },
   
   getDonationById: (id) => {
