@@ -192,23 +192,3 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Expo Team** for the amazing React Native framework
-- **Supabase** for the backend infrastructure
-- **Lucide** for the beautiful icons
-- **MapLibre** for mapping capabilities
-
-## 📞 Support
-
-- 📧 Email: support@kindripple.com
-- 💬 Discord: [Join our community](https://discord.gg/kindripple)
-- 📖 Documentation: [docs.kindripple.com](https://docs.kindripple.com)
-
----
-
-**Made with ❤️ to reduce food waste and help communities**
